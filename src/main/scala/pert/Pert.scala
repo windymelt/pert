@@ -2,8 +2,6 @@ package pert
 
 case class Activity(from: Int, to: Int, cost: Float, name: String = "") {
   val isDummy = cost == 0
-
-  def toDotEdge = s"Event${from} -> Event${to};"
 }
 
 case class Network(activities: Set[Activity]) {
@@ -141,14 +139,18 @@ graph [
 rankdir = "LR"
 ];
     """
-    val nodes = earlyNodeTimes.keys.map { e =>
-      val label = s"${e}\\n${earlyNodeTimes(e)}..${lateNodeTimes(e)}"
-      s"Ev${e} [ shape = circle, label = ${'"'}${label}${'"'} ];"
-    }.mkString("\n")
+    val nodes = earlyNodeTimes.keys
+      .map { e =>
+        val label = s"${e}\\n${earlyNodeTimes(e)}..${lateNodeTimes(e)}"
+        s"Ev${e} [ shape = circle, label = ${'"'}${label}${'"'} ];"
+      }
+      .mkString("\n")
     activities.map { a =>
       s"Ev${a.from} -> Ev${a.to} [ ${if (a.isDummy) "style = dashed, "
       else if (totalFloat(a.from -> a.to) == 0.0) "style = bold, "
-      else ""}label = ${'"'}${a.name}(${a.cost})\\n[T:${totalFloat(a.from -> a.to)}/F:${freeFloat(a.from -> a.to)}]${'"'} ];"
+      else ""}label = ${'"'}${a.name}(${a.cost})\\n[T:${totalFloat(
+        a.from -> a.to
+      )}/F:${freeFloat(a.from -> a.to)}]${'"'} ];"
     } mkString (s"digraph PERT {\n${header}\n${nodes}\n", "\n", "\n}\n")
   }
 }
@@ -157,18 +159,22 @@ case class DetailedActivity(from: Int, to: Int, cost: Float)
 case class DetailedNetwork(activities: Seq[DetailedActivity])
 
 object Hello extends App {
+  implicit def tuple3ToActivity[A <% Float](tuple: Tuple3[Int, Int, A]): Activity =
+    Activity(tuple._1, tuple._2, tuple._3)
+  implicit def tuple4ToActivity[A <% Float](tuple: Tuple4[Int, Int, A, String]): Activity =
+    Activity(tuple._1, tuple._2, tuple._3, tuple._4)
   val network = Network(
     Set(
-      Activity(1, 2, 8),
-      Activity(1, 3, 5),
-      Activity(1, 5, 12),
-      Activity(2, 7, 8),
-      Activity(2, 4, 10),
-      Activity(3, 4, 9),
-      Activity(4, 7, 12),
-      Activity(4, 5, 0),
-      Activity(5, 6, 5),
-      Activity(6, 7, 4)
+      (1, 2, 8),
+      (1, 3, 5),
+      (1, 5, 12),
+      (2, 7, 8),
+      (2, 4, 10),
+      (3, 4, 9),
+      (4, 7, 12),
+      (4, 5, 0),
+      (5, 6, 5),
+      (6, 7, 4)
     )
   )
 
