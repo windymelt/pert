@@ -4,7 +4,10 @@ case class Activity(from: Int, to: Int, cost: Float, name: String = "") {
   val isDummy = cost == 0
 }
 
-case class Network(activities: Set[Activity]) {
+case class Network(
+    activities: Set[Activity],
+    forceEndTime: Option[Float] = None
+) {
   import scala.collection.mutable.{Seq => MuSeq, Map => MuMap, Set => MuSet}
   type Event = Int
   type Cost = Float
@@ -27,7 +30,8 @@ case class Network(activities: Set[Activity]) {
     val endEvent = findEndEvent
     val startEvent = findStartEvent
 
-    intermediateNodeTimes(endEvent) = earlyNodeTimes(endEvent)
+    intermediateNodeTimes(endEvent) =
+      forceEndTime.getOrElse(earlyNodeTimes(endEvent))
     val startCost = calcLateTimesByStartEvent(startEvent, intermediateNodeTimes)
     intermediateNodeTimes(startEvent) = startCost
 
@@ -145,10 +149,15 @@ rankdir = "LR"
         s"Ev${e} [ shape = circle, label = ${'"'}${label}${'"'} ];"
       }
       .mkString("\n")
+    val minimumTotalFloat = totalFloat.minBy(_._2)._2
     activities.map { a =>
-      s"Ev${a.from} -> Ev${a.to} [ ${if (a.isDummy) "style = dashed, "
-      else if (totalFloat(a.from -> a.to) == 0.0) "style = bold, "
-      else ""}label = ${'"'}${a.name}(${a.cost})\\n[T:${totalFloat(
+      val tf = totalFloat(a.from -> a.to)
+      val color = if (tf <= 0 && tf == minimumTotalFloat) { "color = red, " }
+      else { "" }
+      val style = if (a.isDummy) { "style = dashed, " }
+      else if (totalFloat(a.from -> a.to) <= 0.0) { "style = bold, " }
+      else { "" }
+      s"Ev${a.from} -> Ev${a.to} [ ${style}${color}label = ${'"'}${a.name}(${a.cost})\\n[T:${totalFloat(
         a.from -> a.to
       )}/F:${freeFloat(a.from -> a.to)}]${'"'} ];"
     } mkString (s"digraph PERT {\n${header}\n${nodes}\n", "\n", "\n}\n")
@@ -159,9 +168,13 @@ case class DetailedActivity(from: Int, to: Int, cost: Float)
 case class DetailedNetwork(activities: Seq[DetailedActivity])
 
 object Hello extends App {
-  implicit def tuple3ToActivity[A <% Float](tuple: Tuple3[Int, Int, A]): Activity =
+  implicit def tuple3ToActivity[A <% Float](
+      tuple: Tuple3[Int, Int, A]
+  ): Activity =
     Activity(tuple._1, tuple._2, tuple._3)
-  implicit def tuple4ToActivity[A <% Float](tuple: Tuple4[Int, Int, A, String]): Activity =
+  implicit def tuple4ToActivity[A <% Float](
+      tuple: Tuple4[Int, Int, A, String]
+  ): Activity =
     Activity(tuple._1, tuple._2, tuple._3, tuple._4)
   val network = Network(
     Set(
@@ -178,5 +191,26 @@ object Hello extends App {
     )
   )
 
-  println(network.dot)
+  val net2 = Network(
+    Set(
+      (1, 2, 5),
+      (1, 3, 15),
+      (2, 5, 10),
+      (2, 4, 2),
+      (3, 11, 7),
+      (4, 5, 0),
+      (4, 6, 4),
+      (5, 6, 10),
+      (5, 7, 12),
+      (6, 8, 6),
+      (6, 9, 2),
+      (7, 8, 7),
+      (8, 10, 12),
+      (9, 10, 10),
+      (10, 12, 2),
+      (11, 12, 19)
+    ),
+    Some(41)
+  )
+  println(net2.dot)
 }
