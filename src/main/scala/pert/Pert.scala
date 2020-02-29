@@ -1,4 +1,4 @@
-package example
+package pert
 
 case class Activity(from: Int, to: Int, cost: Float, name: String = "") {
   val isDummy = cost == 0
