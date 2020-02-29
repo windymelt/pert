@@ -152,7 +152,8 @@ rankdir = "LR"
     val minimumTotalFloat = totalFloat.minBy(_._2)._2
     activities.map { a =>
       val tf = totalFloat(a.from -> a.to)
-      val color = if (tf <= 0 && tf == minimumTotalFloat) { "color = red, " }
+      val color = if (tf < 0 && tf == minimumTotalFloat) { "color = \"red:invis:red\", " }
+      else if (tf < 0) { "color = red, "}
       else { "" }
       val style = if (a.isDummy) { "style = dashed, " }
       else if (totalFloat(a.from -> a.to) <= 0.0) { "style = bold, " }
