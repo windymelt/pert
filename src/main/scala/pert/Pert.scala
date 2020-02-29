@@ -69,7 +69,6 @@ case class Network(activities: Set[Activity]) {
       case None        => Set()
       case Some(value) => Set(Seq(targetEvent, currentEvent) ++ path)
     }
-    println(s"finish: ${finishActivity}")
     val otherPaths = availableActivities
       .filterNot(_.from == targetEvent)
       .flatMap(a => findPath(a.from, targetEvent, pred, currentEvent +: path))
@@ -142,11 +141,15 @@ graph [
 rankdir = "LR"
 ];
     """
+    val nodes = earlyNodeTimes.keys.map { e =>
+      val label = s"${e}\\n${earlyNodeTimes(e)}..${lateNodeTimes(e)}"
+      s"Ev${e} [ shape = circle, label = ${'"'}${label}${'"'} ];"
+    }.mkString("\n")
     activities.map { a =>
-      s"${a.from} -> ${a.to} [ ${if (a.isDummy) "style = dashed, "
+      s"Ev${a.from} -> Ev${a.to} [ ${if (a.isDummy) "style = dashed, "
       else if (totalFloat(a.from -> a.to) == 0.0) "style = bold, "
-      else ""}label = ${'"'}${a.name}[${a.cost}]${'"'} ];"
-    } mkString (s"digraph PERT {\n${header}\n", "\n", "\n}\n")
+      else ""}label = ${'"'}${a.name}(${a.cost})\\n[T:${totalFloat(a.from -> a.to)}/F:${freeFloat(a.from -> a.to)}]${'"'} ];"
+    } mkString (s"digraph PERT {\n${header}\n${nodes}\n", "\n", "\n}\n")
   }
 }
 case class DetailedActivity(from: Int, to: Int, cost: Float)
