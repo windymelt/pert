@@ -1,4 +1,5 @@
 package pert
+import scala.collection.immutable.Nil
 
 case class Activity(from: Int, to: Int, cost: Float, name: String = "") {
   val isDummy = cost == 0
@@ -152,8 +153,9 @@ rankdir = "LR"
     val minimumTotalFloat = totalFloat.minBy(_._2)._2
     activities.map { a =>
       val tf = totalFloat(a.from -> a.to)
-      val color = if (tf < 0 && tf == minimumTotalFloat) { "color = \"red:invis:red\", " }
-      else if (tf < 0) { "color = red, "}
+      val color = if (tf < 0 && tf == minimumTotalFloat) {
+        "color = \"red:invis:red\", "
+      } else if (tf < 0) { "color = red, " }
       else { "" }
       val style = if (a.isDummy) { "style = dashed, " }
       else if (totalFloat(a.from -> a.to) <= 0.0) { "style = bold, " }
@@ -169,6 +171,9 @@ case class DetailedActivity(from: Int, to: Int, cost: Float)
 case class DetailedNetwork(activities: Seq[DetailedActivity])
 
 object Hello extends App {
+  import com.github.tototoshi.csv._
+  import java.io.File
+
   implicit def tuple3ToActivity[A <% Float](
       tuple: Tuple3[Int, Int, A]
   ): Activity =
@@ -177,7 +182,7 @@ object Hello extends App {
       tuple: Tuple4[Int, Int, A, String]
   ): Activity =
     Activity(tuple._1, tuple._2, tuple._3, tuple._4)
-  val network = Network(
+  val network1 = Network(
     Set(
       (1, 2, 8),
       (1, 3, 5),
@@ -192,7 +197,7 @@ object Hello extends App {
     )
   )
 
-  val net2 = Network(
+  val network2 = Network(
     Set(
       (1, 2, 5),
       (1, 3, 15),
@@ -213,5 +218,25 @@ object Hello extends App {
     ),
     Some(41)
   )
-  println(net2.dot)
+
+  val network = args.toList match {
+    case Nil =>
+      println(network2.dot)
+    case head :: tl =>
+      val csvReader = CSVReader.open(new File(head))
+      val activities = scala.collection.mutable.Set[Activity]()
+      csvReader.toStreamWithHeaders.foreach { kvmap =>
+        activities += Activity(
+          kvmap("from").toInt,
+          kvmap("to").toInt,
+          kvmap("cost").toFloat,
+          kvmap("name")
+        )
+      }
+      csvReader.close()
+      val network = Network(activities.toSet)
+      val write = new java.io.FileWriter(new File(head + ".dot"))
+      write.write(network.dot)
+      write.close()
+  }
 }
