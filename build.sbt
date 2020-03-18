@@ -10,6 +10,7 @@ lazy val root = (project in file("."))
     name := "pert",
     libraryDependencies ++= Seq(
       scalacsv,
+      nscalatime,
       scalaTest % Test
     )
   )
